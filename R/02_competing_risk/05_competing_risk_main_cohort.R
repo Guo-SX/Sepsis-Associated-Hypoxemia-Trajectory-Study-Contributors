@@ -18,7 +18,10 @@ cfg <- list(
   day_col   = "day",
 
   death_flag = "hosp_mortality",
-  time_hours_col = NULL,
+  # Must be the terminal hospital-event time on the same scale as
+  # hosp_mortality (death time for hospital deaths; live-discharge time
+  # for survivors), expressed in hours from the chosen analysis origin.
+  time_hours_col = "hospital_event_time_hours",
 
   age_col = "age_at_admit",
   cbc_cols = c("wbc","rbc","hb","hct","plt"),
@@ -90,7 +93,18 @@ attach_stay_id <- function(group_df_code,
 build_fg_data <- function(baseline,
                           group_df_stay,
                           cfg = cfg) {
-  stop_has_cols(baseline, c(cfg$id_stay, cfg$death_flag, cfg$age_col), "baseline")
+  if (is.null(cfg$time_hours_col) ||
+      identical(cfg$time_hours_col, "icu_los_hours")) {
+    stop(
+      "Fine-Gray analysis requires a verified hospital terminal-event time. ",
+      "Do not pair hosp_mortality with icu_los_hours."
+    )
+  }
+  stop_has_cols(
+    baseline,
+    c(cfg$id_stay, cfg$death_flag, cfg$age_col, cfg$time_hours_col),
+    "baseline"
+  )
   stop_has_cols(group_df_stay, c(cfg$id_stay, "group"), "group_df_stay")
 
   dat <- baseline %>%
@@ -101,15 +115,7 @@ build_fg_data <- function(baseline,
       death = as.integer(.data[[cfg$death_flag]])
     )
 
-  if (!is.null(cfg$time_hours_col) && cfg$time_hours_col %in% names(dat)) {
-    dat <- dat %>% mutate(ftime = as.numeric(.data[[cfg$time_hours_col]]))
-  } else if ("icu_los_hours" %in% names(dat)) {
-    dat <- dat %>% mutate(ftime = as.numeric(.data[["icu_los_hours"]]))
-  } else if ("hosp_los_days" %in% names(dat)) {
-    dat <- dat %>% mutate(ftime = as.numeric(.data[["hosp_los_days"]]) * 24)
-  } else {
-    stop("baseline 里找不到时间列：请提供 cfg$time_hours_col 或至少有 icu_los_hours / hosp_los_days")
-  }
+  dat <- dat %>% mutate(ftime = as.numeric(.data[[cfg$time_hours_col]]))
 
   dat %>%
     mutate(
@@ -842,4 +848,3 @@ cat(latex_code)
 
 
 data_baseline$gender <- ifelse(data_baseline$gender == "M", 1, 0)
-

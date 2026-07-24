@@ -411,7 +411,9 @@ cat("Saved: Table1_eICU_by_group.tex (Overleaf LaTeX)\n")
 cfg <- list(
   id = "patientunitstayid",
   group = "group",
-  time_hours = "icu_los_hours",
+  # Verified terminal hospital-event time: death time for hospital deaths
+  # and live-discharge time for survivors, on one common origin.
+  time_hours = "hospital_event_time_hours",
   death_flag = "hosp_mortality",
   age = "age_years",
   cbc_cols = c(),
@@ -427,6 +429,9 @@ stop_has_cols <- function(df, cols, dfname="data") {
   if (length(miss) > 0) stop(dfname, " 缺少列: ", paste(miss, collapse=", "))
 }
 
+if (identical(cfg$time_hours, "icu_los_hours")) {
+  stop("Do not pair hosp_mortality with icu_los_hours in Fine-Gray models.")
+}
 stop_has_cols(eicu_data, c(cfg$id, cfg$death_flag, cfg$age, cfg$time_hours), "eicu_data")
 
 reg_df <- eicu_data %>%
@@ -848,7 +853,6 @@ cat("Saved: Table1_eICU_by_group.tex\n")
 
 assign("tbl1", tbl1, envir = .GlobalEnv)
 assign("gt_tbl1", gt_tbl, envir = .GlobalEnv)
-
 
 
 

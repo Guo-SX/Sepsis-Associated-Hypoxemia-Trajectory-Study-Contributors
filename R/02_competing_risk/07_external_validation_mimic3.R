@@ -342,7 +342,9 @@ cat("Saved: FIG_nwICU_AB.png, FIG_nwICU_A_TRAJ_CI.png, FIG_nwICU_B_RIDGE.png\n")
 cfg <- list(
   id = "icustay_id",
   group = "group",
-  time_hours = "icu_los_hours",
+  # Verified terminal hospital-event time: death time for hospital deaths
+  # and live-discharge time for survivors, on one common origin.
+  time_hours = "hospital_event_time_hours",
   death_flag = "hosp_mortality",
   age = "age_at_admit",
   comorb_cols = c("copd","chf","ckd","liver_disease","diabetes","malignancy"),
@@ -358,6 +360,9 @@ stop_has_cols <- function(df, cols, dfname="data") {
   if (length(miss) > 0) stop(dfname, " 缺少列: ", paste(miss, collapse=", "))
 }
 
+if (identical(cfg$time_hours, "icu_los_hours")) {
+  stop("Do not pair hosp_mortality with icu_los_hours in Fine-Gray models.")
+}
 stop_has_cols(nwicu_data, c(cfg$id, cfg$death_flag, cfg$age, cfg$time_hours), "nwicu_data")
 
 reg_df <- nwicu_data %>%
@@ -885,4 +890,3 @@ cat("Saved: FIG_nwICU_AB_noCI.png, FIG_nwICU_A_TRAJ_noCI.png\n")
 
 
 dat_with_group_LAC_MIN_SF_PF_MEAN
-
